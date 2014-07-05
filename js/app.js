@@ -1,10 +1,54 @@
 var app = angular.module('myApp', []);
 
+app.factory('audio', ['$document', function($document){
+	var audio = $document[0].createElement('audio');
+	return audio;
+}]);
+
+app.factory('player', ['audio', '$rootScope' function(audio, $routeScope){
+	var player = {
+		playing: false;
+		current : null,
+		ready: false,
+
+		currentTime: function(){
+			return audio.currentTime;
+		},
+
+		currentDuration: function(){
+			return parseInt(audio.duration);
+		},
+
+		play: function(program){
+			//if playing, stop current playback
+			if(player.playing) player.stop();
+			var url = program.audio[0].format.mp4.$text; //npr api
+			player.current = program;
+			audio.src = url;
+			audio.play();
+			player.playing = true;
+		},
+
+		stop: function(){
+			if(player.playing){
+				audio.pause();
+
+				player.ready = player.playing = false;
+				player.current = null;
+			}
+		}
+	};
+	audio.addEventListener('ended', function(){
+		$rootScope.$apply(payer.stop());
+	});
+	return player;
+}])
+
 var apiKey = 'MDE1MDI3OTI4MDE0MDM0OTkxNjgyNTE0MQ001',
     nprUrl = 'http://api.npr.org/query?id=61&fields=relatedLink,title,byline,text,audio,image,pullQuote,all&output=JSON';
 
-app.controller('PlayerCtrl', ['$scope', '$http', function($scope, $http){
-	var audio = document.createElement('audio');
+app.controller('PlayerCtrl', ['$scope', '$http', 'audio', 'player',
+ function($scope, $http, audio, player){
 	$scope.audio = audio;
 	
 	$http({
@@ -22,34 +66,16 @@ app.controller('PlayerCtrl', ['$scope', '$http', function($scope, $http){
 
 	});
 
-	$scope.playing = false;
+	$scope.player = player;
 
-
-	//format.mp4.$text is route to mp4 file from api
-	$scope.play = function(program){
-		if($scope.playing) $scope.audio.pause();
-		var url = program.audio[0].format.mp4.$text;
-		audio.src = url;
-		audio.play();
-		$scope.playing = true;
-	}
-
-	$scope.stop = function(){
-		$scope.audio.pause();
-		$scope.playing = false;
-	}
-
-	$scope.audio.addEventListener('ended', function() {
-    $scope.$apply(function() {
-      $scope.stop()
-    });
-  });
 }]);
 
 app.controller('RelatedCtrl', ['$scope', function($scope){
 
 }]);
 
+
+//Just trying out a clock via angular.
 app.controller('MyCtrl', function($scope) {
   $scope.person = { name: "Kyle" };
   var updateClock = function() {
